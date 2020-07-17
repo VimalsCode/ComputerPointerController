@@ -75,6 +75,21 @@ python3 src/main.py -i bin/demo.mp4 -fd <path_to_face_detection_model> -fld <pat
 ```
 > Provide the model path where the files are stored (*.xml + *.bin) 
 ## Documentation
+General overview about the files used,
+
+| File name        | Description           | 
+| ------------- |:-------------| 
+| main.py      | Main project file interacting with different model |
+| face_detection.py      | To handle the face detection prediction |
+| facial_landmarks_detection.py      | To handle the face landmarks detection prediction |
+| gaze_estimation.py      | To track the gaze estimation prediction |
+| head_pose_estimation.py      | To handle the head pose estimation prediction |
+| input_feeder.py      | To process input video stream |
+| mouse_controller.py      | To handle mouse movement based on gaze estimation output |
+| network_loader_helper.py      | Helper script to initialize the network instance |
+| visualization_helper.py      | Visualization helper script to show model results |
+
+
 Run the application with the -h option to get the required parameter details,
 ```
 python3 src/main.py -h
