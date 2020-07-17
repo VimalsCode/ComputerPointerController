@@ -15,8 +15,8 @@ The project repository is developed and tested under the following environment,
 
 | Environment item        | Description           | 
 | ------------- |:-------------:| 
-| Operation system      | Windows 10 Professional | 
-| Configuration      | Intel      |   
+| Operation system      | Windows 10 Pro | 
+| Configuration      | Intel Core i7-8550U CPU @ 1.80GHz      |   
 | python version | 3.6      |
 | Video input | attached demo videos with single face detection      |
 | Device | CPU      |
@@ -47,7 +47,21 @@ pip3 install -r requirements.txt
 
 ### Step 3: Download OpenVino pretrained model
 The project repository contains the required pretrained model already downloaded and can be directly used. If required to download manually, follow the below command,
-*TODO:*
+
+* Navigate to the OpenVino downloader script folder,
+ <OpenVino_Install_Folder/deployment_tools\tools\model_downloader
+ 
+* Run the Model downloader script and specify the location to store the downloaded model files
+
+```
+python3 downloader.py --name face-detection-adas-binary-0001 --output_dir <Location_to_store>
+
+python3 downloader.py --name head-pose-estimation-adas-0001 --output_dir <Location_to_store>
+
+python3 downloader.py --name landmarks-regression-retail-0009 --output_dir <Location_to_store>
+
+python3 downloader.py --name gaze-estimation-adas-0002 --output_dir <Location_to_store>
+```
  
  > make sure the model is converted to the Inference Engine format (*.xml + *.bin) 
 
@@ -56,7 +70,6 @@ To run the application use the following command,
 ```
 python3 src/main.py -i bin/demo.mp4
 ```
-
 
 ## Documentation
 Run the application with the -h option to get the required parameter details,
@@ -69,33 +82,35 @@ Mandatory Parameters - application execution related:
 
 | Parameter name        | Description           | 
 | ------------- |:-------------:| 
-| -i, --input      | Input file location or 'CAM' to use the webcamera | 
-| -d, --device      | To specify the location of face detection model .xml file|   
-| -pt, --prob_threshold      | To specify the location of head pose estimation model .xml file      |
+| -i, --input      | Path to video file or 'CAM' to use the webcamera |   
 
 Mandatory Parameters - model related:
 
 | Parameter name        | Description           | 
 | ------------- |:-------------:| 
-| -i, --input      | Input file location or 'CAM' to use the webcamera | 
-| -mf, --model_fd      | To specify the location of face detection model .xml file|   
-| -mf, --model_fd      | To specify the location of head pose estimation model .xml file      |
-| -mf, --model_fd      | To specify the location of facial landmarks detection model .xml file      |
-| -mf, --model_fd      | To specify the location of gaze estimation model .xml file      |
+| -fd, --face_detection      | To specify the location of face detection model .xml file|   
+| -fld, --facial_landmarks_detection      | To specify the location of facial landmarks detection model .xml file      |
+| -ge, --gaze_estimation     | To specify the location of gaze estimation model .xml file      |
+| -hpe, --head_pose_estimation      | To specify the location of head pose estimation model .xml file      |
 
 Optional Parameters - visualization related:
 To control the behavior of visualization for the model detection,
 
 | Parameter name        | Description           | 
 | ------------- |:-------------:| 
-| -v_mf, --visualization_model_fd      | To specify the location of face detection model .xml file|   
-| -mf, --model_fd      | To specify the location of head pose estimation model .xml file      |
-| -mf, --model_fd      | To specify the location of facial landmarks detection model .xml file      |
-| -mf, --model_fd      | To specify the location of gaze estimation model .xml file      |
+| -v_fd, --visualization_fd      | To generate face detection visualization (default=True) |   
+| -v_hpe, --visualization_hpe      | To generate head pose estimation visualization (default=True) |
+| -v_fld, --visualization_fld      | To generate facial landmark detection visualization (default=True) |
+| -v_ge, --visualization_ge      | To generate gaze estimation visualization (default=True) |
+| -l, --cpu_extension      | (CPU)-targeted custom layers absolute path |
+| -pt, --prob_threshold      | To specify the probability threshold for detections filtering (default=0.5) |
+| -d, --device      | To specify Specify the target device to infer on CPU, GPU, FPGA or MYRIAD (default=CPU) | 
 
 
 ## Benchmarks
-*TODO:* Include the benchmark results of running your model on multiple hardwares and multiple model precisions. Your benchmarks can include: model loading time, input/output processing time, model inference time etc.
+
+The following benchmark was carried based on the environment specification mentioned under _**Overview**_ section
+
 #### Models load time (in secs):
 <p align="center">
 <img src="analysis/Model_Load_Time.png" width=500px height=450px/>
@@ -109,18 +124,14 @@ To control the behavior of visualization for the model detection,
 
 
 ## Results
-*TODO:* Discuss the benchmark results and explain why you are getting the results you are getting. For instance, explain why there is difference in inference time for FP32, FP16 and INT8 models.
+The benchmark analysis shows that there is no significance performance variation between FP32 and FP16 models.In general, the Face detection load time is higher compared to other model load time
+and the inference time is also higher for face detection model.
+Even though, the benchmark test showed good accuracy, it will be interesting to know individually about the auxiliary networks and also test within other environment like VPU and GPU.
+
 
 ## References
-https://medium.com/@stepanfilonov/tracking-your-eyes-with-python-3952e66194a6
-https://towardsdatascience.com/real-time-eye-tracking-using-opencv-and-dlib-b504ca724ac6
-https://sebastian-hoeffner.de/uni/mthesis/HoeffnerGaze.pdf
-https://esc.fnwi.uva.nl/thesis/centraal/files/f1317295686.pdf
+https://medium.com/@stepanfilonov/tracking-your-eyes-with-python-3952e66194a6 <br>
+https://towardsdatascience.com/real-time-eye-tracking-using-opencv-and-dlib-b504ca724ac6 <br>
+https://sebastian-hoeffner.de/uni/mthesis/HoeffnerGaze.pdf <br>
+https://esc.fnwi.uva.nl/thesis/centraal/files/f1317295686.pdf <br>
 https://stackoverflow.com/questions/10365087/gaze-estimation-from-an-image-of-an-eye
-
-
-### Async Inference
-If you have used Async Inference in your code, benchmark the results and explain its effects on power and performance of your project.
-
-### Edge Cases
-There will be certain situations that will break your inference flow. For instance, lighting changes or multiple people in the frame. Explain some of the edge cases you encountered in your project and how you solved them to make your project more robust.
