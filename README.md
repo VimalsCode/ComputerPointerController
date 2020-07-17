@@ -98,14 +98,26 @@ To control the behavior of visualization for the model detection,
 *TODO:* Include the benchmark results of running your model on multiple hardwares and multiple model precisions. Your benchmarks can include: model loading time, input/output processing time, model inference time etc.
 #### Models load time (in secs):
 <p align="center">
-<img src="analysis/Model_Load_Time.png" width=400px height=350px/>
+<img src="analysis/Model_Load_Time.png" width=500px height=450px/>
 </p>
+<br>
+
+#### Models Inference time (in secs):
+<p align="center">
+<img src="analysis/Model_Inference_Time.png" width=500px height=450px/>
+</p>
+
 
 ## Results
 *TODO:* Discuss the benchmark results and explain why you are getting the results you are getting. For instance, explain why there is difference in inference time for FP32, FP16 and INT8 models.
 
-## Stand Out Suggestions
-This is where you can provide information about the stand out suggestions that you have attempted.
+## References
+https://medium.com/@stepanfilonov/tracking-your-eyes-with-python-3952e66194a6
+https://towardsdatascience.com/real-time-eye-tracking-using-opencv-and-dlib-b504ca724ac6
+https://sebastian-hoeffner.de/uni/mthesis/HoeffnerGaze.pdf
+https://esc.fnwi.uva.nl/thesis/centraal/files/f1317295686.pdf
+https://stackoverflow.com/questions/10365087/gaze-estimation-from-an-image-of-an-eye
+
 
 ### Async Inference
 If you have used Async Inference in your code, benchmark the results and explain its effects on power and performance of your project.
