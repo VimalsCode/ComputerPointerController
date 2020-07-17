@@ -14,7 +14,7 @@ The project relies on the following auxiliary networks from openvino pretrained 
 The project repository is developed and tested under the following environment,
 
 | Environment item        | Description           | 
-| ------------- |:-------------:| 
+| ------------- |:-------------| 
 | Operation system      | Windows 10 Pro | 
 | Configuration      | Intel Core i7-8550U CPU @ 1.80GHz      |   
 | python version | 3.6      |
@@ -28,16 +28,18 @@ The project repository is developed and tested under the following environment,
 Follow the instructions specified [here](https://docs.openvinotoolkit.org/latest/index.html) to install the OpenVino tool kit based on the operating system requirements.The project respository was developed and 
 tested based on the OpenVino version 2020.1.
 
+Open the Command Prompt, and run the setupvars.bat batch file to temporarily set your environment variables provided within OpenVino installation bin folder. 
+
 ### Step 2: Setup the repository
 Clone this repository and perform the below steps to create the Python Virtual Environment,
 * create a virtual environment using the following command,
 ```
-python3 -m venv <env-name>
+python -m venv <env-name>
 ```
 
 * Use the following command to activate the virtual environment,
 ```
-source env-name/bin/activate
+<env-name>\Scripts\activate
 ```
 
 * Required project dependencies can be installed based on the following command,
@@ -68,9 +70,10 @@ python3 downloader.py --name gaze-estimation-adas-0002 --output_dir <Location_to
 ## Demo
 To run the application use the following command,
 ```
-python3 src/main.py -i bin/demo.mp4
+python3 src/main.py -i bin/demo.mp4 -fd <path_to_face_detection_model> -fld <path_to_face_landmark_detection_model> -hpe <path_to_head_pose_estimation_model> 
+-ge <path_to_gaze_estimation_model>
 ```
-
+> Provide the model path where the files are stored (*.xml + *.bin) 
 ## Documentation
 Run the application with the -h option to get the required parameter details,
 ```
@@ -81,13 +84,13 @@ Overview about the commandline parameters is provided here,
 Mandatory Parameters - application execution related:
 
 | Parameter name        | Description           | 
-| ------------- |:-------------:| 
+| ------------- |:-------------| 
 | -i, --input      | Path to video file or 'CAM' to use the webcamera |   
 
 Mandatory Parameters - model related:
 
 | Parameter name        | Description           | 
-| ------------- |:-------------:| 
+| ------------- |:-------------| 
 | -fd, --face_detection      | To specify the location of face detection model .xml file|   
 | -fld, --facial_landmarks_detection      | To specify the location of facial landmarks detection model .xml file      |
 | -ge, --gaze_estimation     | To specify the location of gaze estimation model .xml file      |
@@ -97,7 +100,7 @@ Optional Parameters - visualization related:
 To control the behavior of visualization for the model detection,
 
 | Parameter name        | Description           | 
-| ------------- |:-------------:| 
+| ------------- |:-------------| 
 | -v_fd, --visualization_fd      | To generate face detection visualization (default=True) |   
 | -v_hpe, --visualization_hpe      | To generate head pose estimation visualization (default=True) |
 | -v_fld, --visualization_fld      | To generate facial landmark detection visualization (default=True) |
