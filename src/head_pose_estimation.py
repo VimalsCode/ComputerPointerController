@@ -1,11 +1,23 @@
+import logging as log
+
 import cv2
-from openvino.inference_engine.ie_api import IECore
-
-from util.network_loader_helper import create_network, load_network, check_network, get_network_input_shape, \
-    get_network_output_shape
+from BaseModel import BaseModel
 
 
-class HeadPoseEstimationModel:
+def draw_head_pose_estimation(original_frame, head_pose_estimation_output):
+    """
+    To draw the output from head pose estimation model
+    :param original_frame:input image
+    :param head_pose_estimation_output:output
+    :return:frame with the text information
+    """
+    frame_text = "head pose: (y={:.2f}, p={:.2f}, r={:.2f})".format(head_pose_estimation_output[0],
+                                                                    head_pose_estimation_output[1],
+                                                                    head_pose_estimation_output[2])
+    return cv2.putText(original_frame, frame_text, (20, 20), cv2.FONT_HERSHEY_COMPLEX, 0.35, (255, 255, 255), 1)
+
+
+class HeadPoseEstimationModel(BaseModel):
     """
     The HeadPoseEstimationModel class used to load the model, apply frame transformation, predict and extract output
     """
@@ -13,80 +25,45 @@ class HeadPoseEstimationModel:
     def __init__(self, model_name, device='CPU', extensions=None):
         """
         To initialize the HeadPoseEstimationModel class
-        :param model_name: name of the model
+        :param model_name: path to the location where the model is available
         :param device: device to load the network
         :param extensions: extensions to use, if any
         """
-        self.model_bin = model_name + ".bin"
-        self.model_xml = model_name + ".xml"
-        self.device = device
-        self.extensions = extensions
-        self.plugin = IECore()
-        # Read the IR as a IENetwork
-        self.network = create_network(self.model_xml, self.model_bin)
-        # Get the input layer
-        self.input_blob = next(iter(self.network.inputs))
-        self.input_shape = self.network.inputs[self.input_blob].shape
-        self.output_blob = next(iter(self.network.outputs))
-        self.exec_network = None
-        # info about network input & output
-        get_network_input_shape(self.network, 'Head Post Estimation')
-        get_network_output_shape(self.network, 'Head Post Estimation')
+        BaseModel.__init__(self, model_name, device, extensions)
+        self.processed_image = None
+        self.model_name = "Head pose estimation Model"
 
-    def load_model(self):
+    def predict_head_pose_estimation(self, original_frame, image, visualize=True):
         """
-        To load the head post estimation model to the specified hardware
-        :return: None
-        """
-        # check model for unsupported layers
-        self.check_model()
-        # Load the network into the Inference Engine
-        self.exec_network = load_network(self.plugin, self.network, self.device)
-
-    def predict(self, image):
-        """
-        To perform head post estimation for the provided frame
-        :param image: input frame
+        To perform head pose estimation
+        :param original_frame: input frame
+        :param image: detected face image
+        :param visualize: flag if visualization is required
         :return: list containing yaw, pitch, roll
         """
         try:
             # preprocessing step
-            processed_image = self.preprocess_input(image)
-            net_input = {self.input_blob: processed_image}
-            # make a infer request
-            infer_request = self.exec_network.start_async(
-                0,
-                inputs=net_input)
-            status = self.exec_network.requests[0].wait(-1)
-            if status == 0:
+            # input format: name: "data" , shape: [1x3x60x60] , format: BGR format
+            self.processed_image = self.preprocess_input(image)
+            # prepare network input
+            self.set_net_input()
+            # call predict
+            self.predict()
+            # wait for the results
+            if self.wait() == 0:
                 # get the result
-                network_result = infer_request.outputs
-                return self.preprocess_output(network_result)
+                network_result = self.infer_request.outputs
+                head_pose_estimation_output = self.preprocess_output(network_result)
+                # head pose estimation visualization
+                if visualize:
+                    original_frame = draw_head_pose_estimation(original_frame, head_pose_estimation_output)
+                return head_pose_estimation_output, original_frame
         except Exception as e:
-            print(str(e))
+            log.error("The head pose prediction request cannot be completed!")
+            log.error("Exception message during head pose prediction detection prediction : {}".format(e))
 
-    def check_model(self):
-        """
-        To check the model for unsupported layers and apply necessary extensions
-        :return:None
-        """
-        # Check for supported layers
-        check_network(self.plugin, self.network, self.device, self.extensions)
-
-    def preprocess_input(self, image):
-        """
-        To preprocess the input for the head pose estimation model.
-        input format: name: "data" , shape: [1x3x60x60] , format: BGR format
-        :param image: input frame
-        :return: transformed input frame
-        """
-        # Pre-process the frame
-        image = cv2.resize(image, (self.input_shape[3], self.input_shape[2]))
-        # Change format from HWC to CHW
-        image_to_infer = image.transpose((2, 0, 1))
-        # prepare according to face_detection model
-        image_to_infer = image_to_infer.reshape(1, *image_to_infer.shape)
-        return image_to_infer
+    def set_net_input(self):
+        self.net_input = {self.input_blob: self.processed_image}
 
     def preprocess_output(self, outputs):
         """

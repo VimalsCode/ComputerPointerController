@@ -11,8 +11,6 @@ from gaze_estimation import GazeEstimationModel
 from head_pose_estimation import HeadPoseEstimationModel
 from input_feeder import InputFeeder
 from mouse_controller import MouseController
-from util.visualization_helper import draw_head_pose_estimation, draw_facial_landmarks_estimation, \
-    draw_gaze_estimation, draw_face_detection
 
 """
 Project Main file to load the model and perform inference.
@@ -52,7 +50,8 @@ def analyze_model_inference_time(m_fd_infer_time, m_hpe_infer_time, m_fld_infer_
 
 def main():
     # create log file
-    log.basicConfig(filename='logs/cpc.log', level=log.INFO)
+    log.basicConfig(filename='logs/cpc.log', level=log.DEBUG, format='%(asctime)s %(message)s')
+
     # Parse the argument
     args = parse_arguments().parse_args()
 
@@ -77,7 +76,7 @@ def main():
         # get the input value
         input_stream = args.input
         if not os.path.isfile(input_stream):
-            log.error("Provided input video file doesn't exist!")
+            log.error("Provided input video file doesn't exist/video path is wrong!")
             exit(1)
         # load the video file
         input_feeder = InputFeeder("video", input_stream)
@@ -140,37 +139,27 @@ def main():
                 break
             # invoke face detection prediction
             m_fd_infer_start_time = time.time()
-            detected_face_image, detected_box = face_detection.predict(frame)
+            detected_face_image, detected_box = face_detection.predict_face_detection(frame, args.visualization_fd)
             m_fd_infer_end_time = time.time()
             m_fd_infer_time.append(m_fd_infer_end_time - m_fd_infer_start_time)
 
-            # face detection visualization
-            if args.visualization_fd:
-                frame = draw_face_detection(frame, detected_box)
-
             # invoke head pose estimation prediction
-            head_pose_estimation_output = head_pose_estimation.predict(detected_face_image)
+            head_pose_estimation_output, frame = head_pose_estimation.predict_head_pose_estimation(frame,
+                                                                                                   detected_face_image,
+                                                                                                   args.visualization_hpe)
             m_hpe_infer_end_time = time.time()
             m_hpe_infer_time.append(m_hpe_infer_end_time - m_fd_infer_end_time)
 
-            # head pose estimation visualization
-            if args.visualization_hpe:
-                frame = draw_head_pose_estimation(frame, head_pose_estimation_output)
-
             # invoke face landmark detection prediction
-            left_eye_image, right_eye_image, left_eye_dimension, right_eye_dimension = face_landmark_detection.predict(
-                detected_face_image)
+            left_eye_image, right_eye_image, = face_landmark_detection.predict_facial_landmarks_detection(
+                detected_face_image, args.visualization_fld)
             m_fld_infer_end_time = time.time()
             m_fld_infer_time.append(m_fld_infer_end_time - m_hpe_infer_end_time)
 
-            # face land mark visualization
-            if args.visualization_fld:
-                detected_face_image = draw_facial_landmarks_estimation(detected_face_image, left_eye_dimension,
-                                                                       right_eye_dimension)
-
             # invoke gaze estimation prediction
-            mouse_coordinate, predicted_gaze_output = gaze_estimation.predict(left_eye_image, right_eye_image,
-                                                                              head_pose_estimation_output)
+            mouse_coordinate, predicted_gaze_output = gaze_estimation.predict_gaze_estimation(left_eye_image,
+                                                                                              right_eye_image,
+                                                                                              head_pose_estimation_output)
             m_ge_infer_end_time = time.time()
             m_ge_infer_time.append(m_ge_infer_end_time - m_fld_infer_end_time)
 
@@ -185,7 +174,7 @@ def main():
                 right_eye_x = int(outputs[2] * width + detected_box[0])
                 right_eye_y = int(outputs[3] * height + detected_box[1])
                 eye_bounding_box = [left_eye_x, left_eye_y, right_eye_x, right_eye_y]
-                draw_gaze_estimation(eye_bounding_box, predicted_gaze_output, frame)
+                gaze_estimation.draw_gaze_estimation(eye_bounding_box, predicted_gaze_output, frame)
 
             # show the results
             cv2.imshow('ComputerPointer', frame)
@@ -193,12 +182,12 @@ def main():
         frame_count = frame_count + 1
 
     log.info("Completed gaze estimation for the provided video!.")
-    log.info("Time taken to run Face detection inference took {} seconds.".format(statistics.mean(m_fd_infer_time)))
+    log.info("Mean time taken to run Face detection inference took {} seconds.".format(statistics.mean(m_fd_infer_time)))
     log.info(
-        "Time taken to run Head pose estimation inference took {} seconds.".format(statistics.mean(m_hpe_infer_time)))
-    log.info("Time taken to run Face Landmark detection inference took {} seconds.".format(
+        "Mean time taken to run Head pose estimation inference took {} seconds.".format(statistics.mean(m_hpe_infer_time)))
+    log.info("Mean time taken to run Face Landmark detection inference took {} seconds.".format(
         statistics.mean(m_fld_infer_time)))
-    log.info("Time taken to run Gaze estimation inference took {} seconds.".format(statistics.mean(m_ge_infer_time)))
+    log.info("Mean time taken to run Gaze estimation inference took {} seconds.".format(statistics.mean(m_ge_infer_time)))
     # to perform model inference analysis
     # analyze_model_inference_time(m_fd_infer_time, m_hpe_infer_time, m_fld_infer_time, m_ge_infer_time, "FP32")
     # clean up resources

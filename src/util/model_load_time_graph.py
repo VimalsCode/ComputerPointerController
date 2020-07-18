@@ -5,8 +5,8 @@ import numpy as np
 Helper to create chart
 """
 labels = ['m_fd', 'm_hpe', 'm_fld', 'm_ge']
-inference_time_FP32 = [0.228, 0.093, 0.079, 0.11386]
-inference_time_FP16 = [0.263, 0.106, 0.08202, 0.12212]
+inference_time_FP32 = [0.268, 0.105, 0.084, 0.12902]
+inference_time_FP16 = [0.27502, 0.129, 0.09785, 0.14403]
 
 x = np.arange(len(labels))
 width = 0.35

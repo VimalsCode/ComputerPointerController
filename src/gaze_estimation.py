@@ -1,13 +1,11 @@
+import logging as log
 import math
 
 import cv2
-from openvino.inference_engine.ie_api import IECore
-
-from util.network_loader_helper import create_network, load_network, check_network, get_network_input_shape, \
-    get_network_output_shape
+from BaseModel import BaseModel
 
 
-class GazeEstimationModel:
+class GazeEstimationModel(BaseModel):
     """
     The GazeEstimationModel class used to load the model, apply frame transformation, predict the gaze vector and
     extract required output
@@ -16,83 +14,49 @@ class GazeEstimationModel:
     def __init__(self, model_name, device='CPU', extensions=None):
         """
         To initialize the GazeEstimationModel class
-        :param model_name: name of the model
+        :param model_name: path to the location where the model is available
         :param device: device to load the network
         :param extensions: extensions to use, if any
         """
+        BaseModel.__init__(self, model_name, device, extensions)
+        self.processed_image = None
+        self.model_name = "Gaze estimation Model"
+        self.left_eye_processed_image = None
+        self.right_eye_processed_image = None
+        self.head_pose_estimation_output = None
 
-        self.model_bin = model_name + ".bin"
-        self.model_xml = model_name + ".xml"
-        self.device = device
-        self.extensions = extensions
-        self.plugin = IECore()
-        # Read the IR as a IENetwork
-        self.network = create_network(self.model_xml, self.model_bin)
-        # Get the input layer
-        self.output_blob = next(iter(self.network.outputs))
-        self.exec_network = None
-        # info about network input & output
-        get_network_input_shape(self.network, 'gaze')
-        get_network_output_shape(self.network, 'gaze')
-
-    def load_model(self):
-        """
-        To load the gaze estimation model to the specified hardware
-        :return: None
-        """
-        # check model for unsupported layers
-        self.check_model()
-        # Load the network into the Inference Engine
-        self.exec_network = load_network(self.plugin, self.network, self.device)
-
-    def predict(self, left_eye_image, right_eye_image, head_pose_estimation_output):
+    def predict_gaze_estimation(self, left_eye_image, right_eye_image, head_pose_estimation_output):
         """
         To perform gaze estimation
         :param left_eye_image: left eye image
         :param right_eye_image: right eye image
-        :param head_pose_estimation_output: head pose estimation
+        :param head_pose_estimation_output: head pose estimation list
         :return: x,y position and gaze vector
         """
         try:
             # preprocessing step
-            left_eye_processed_image = self.preprocess_input(left_eye_image)
-            right_eye_processed_image = self.preprocess_input(right_eye_image)
-            net_input = {'left_eye_image': left_eye_processed_image, 'right_eye_image': right_eye_processed_image,
-                         'head_pose_angles': head_pose_estimation_output}
-            # make a infer request
-            infer_request = self.exec_network.start_async(0, inputs=net_input)
-            status = self.exec_network.requests[0].wait(-1)
-            if status == 0:
+            #  Name: left_eye_image, shape: [1x3x60x60], Name: right_eye_image , shape: [1x3x60x60],
+            #  Name: head_pose_angles , shape: [1x3]
+            self.left_eye_processed_image = self.preprocess_input(left_eye_image)
+            self.right_eye_processed_image = self.preprocess_input(right_eye_image)
+            self.head_pose_estimation_output = head_pose_estimation_output
+            # prepare network input
+            self.set_net_input()
+            # call predict
+            self.predict()
+            # wait for the results
+            if self.wait() == 0:
                 # get the result
-                network_result = infer_request.outputs[self.output_blob]
-                return self.preprocess_output(network_result, head_pose_estimation_output)
+                network_result = self.infer_request.outputs[self.output_blob]
+            return self.preprocess_output(network_result, head_pose_estimation_output)
         except Exception as e:
-            print(str(e))
+            log.error("The gaze estimation request cannot be completed!")
+            log.error("Exception message during gaze estimation : {}".format(e))
 
-    def check_model(self):
-        """
-        To check the model for unsupported layers and apply necessary extensions
-        :return:None
-        """
-        # Check for supported layers
-        check_network(self.plugin, self.network, self.device, self.extensions)
-
-    def preprocess_input(self, image):
-        """
-        To preprocess the input for the gaze estimation model.
-        Name: left_eye_image, shape: [1x3x60x60]
-        Name: right_eye_image , shape: [1x3x60x60]
-        Name: head_pose_angles , shape: [1x3]
-        :param image: input frame
-        :return:  transformed input frame
-        """
-        # Pre-process the frame
-        image = cv2.resize(image, (60, 60))
-        # Change format from HWC to CHW
-        image_to_infer = image.transpose((2, 0, 1))
-        # prepare according to face_detection model
-        image_to_infer = image_to_infer.reshape(1, *image_to_infer.shape)
-        return image_to_infer
+    def set_net_input(self):
+        self.net_input = {'left_eye_image': self.left_eye_processed_image,
+                          'right_eye_image': self.right_eye_processed_image,
+                          'head_pose_angles': self.head_pose_estimation_output}
 
     def preprocess_output(self, outputs, head_pose_estimation_output):
         """
@@ -115,3 +79,31 @@ class GazeEstimationModel:
         y = - predicted_gaze_output[0] * sin_theta + predicted_gaze_output[1] * cos_theta
 
         return (x, y), predicted_gaze_output
+
+    def draw_gaze_estimation(self, eye_bounding_box, predicted_gaze_output, frame):
+        """
+        To draw gaze estimation output on the frame
+        Reference : https://knowledge.udacity.com/questions/257811
+        :param eye_bounding_box: face landmark detection output
+        :param predicted_gaze_output: gaze vector
+        :param frame: image frame
+        :return:
+        """
+        left_eye_center1 = int(eye_bounding_box[0] + predicted_gaze_output[0] * 100)
+        left_eye_center2 = int(eye_bounding_box[1] - predicted_gaze_output[1] * 100)
+        self.draw_arrow(frame, (eye_bounding_box[0], eye_bounding_box[1]), (left_eye_center1, left_eye_center2))
+
+        right_eye_center1 = int(eye_bounding_box[2] + predicted_gaze_output[0] * 100)
+        right_eye_center2 = int(eye_bounding_box[3] - predicted_gaze_output[1] * 100)
+        self.draw_arrow(frame, (eye_bounding_box[2], eye_bounding_box[3]), (right_eye_center1, right_eye_center2))
+        return frame
+
+    def draw_arrow(self, frame, point1, point2):
+        """
+        To draw the arrow line
+        :param frame: image frame
+        :param point1: bounding box1
+        :param point2: bounding box1
+        :return: frame with arrowedLine drawn
+        """
+        return cv2.arrowedLine(frame, point1, point2, (255, 0, 0), 2)
