@@ -50,7 +50,7 @@ def analyze_model_inference_time(m_fd_infer_time, m_hpe_infer_time, m_fld_infer_
 
 def main():
     # create log file
-    log.basicConfig(filename='logs/cpc.log', level=log.DEBUG, format='%(asctime)s %(message)s')
+    log.basicConfig(filename='logs/cpc.log', level=log.INFO, format='%(asctime)s %(message)s')
 
     # Parse the argument
     args = parse_arguments().parse_args()
