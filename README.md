@@ -86,8 +86,7 @@ General overview about the files used,
 | head_pose_estimation.py      | To handle the head pose estimation prediction |
 | input_feeder.py      | To process input video stream |
 | mouse_controller.py      | To handle mouse movement based on gaze estimation output |
-| network_loader_helper.py      | Helper script to initialize the network instance |
-| visualization_helper.py      | Visualization helper script to show model results |
+| BaseModel.py      | Base class defining model common behavior |
 
 
 Run the application with the -h option to get the required parameter details,
