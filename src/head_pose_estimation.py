@@ -1,7 +1,7 @@
 import logging as log
 
 import cv2
-from BaseModel import BaseModel
+from base_model import BaseModel
 
 
 def draw_head_pose_estimation(original_frame, head_pose_estimation_output):

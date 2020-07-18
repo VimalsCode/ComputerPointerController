@@ -2,7 +2,7 @@ import logging as log
 import math
 
 import cv2
-from BaseModel import BaseModel
+from base_model import BaseModel
 
 
 class GazeEstimationModel(BaseModel):
